@@ -1,15 +1,12 @@
 {
-  "extends": "../tsconfig.json",
+  "extends": "../tsconfig.json",  // Reference to the root tsconfig
   "compilerOptions": {
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],  // Ensure ES2015 and DOM are included
     "skipLibCheck": true,
-
-    /* Bundler mode */
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": false  // Ensure noEmit is false to compile the output
   },
-  "include": ["src"]
+  "include": ["src"]  // Only include the frontend files
 }

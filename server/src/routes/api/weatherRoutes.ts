@@ -2,10 +2,10 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import fetch from 'node-fetch'; // Make sure this is installed
+import fetch from 'node-fetch'; // Ensure this is installed
 
 const router = express.Router();
-const searchHistoryPath = path.resolve('data', 'searchHistory.json'); // Adjust this path if needed
+const searchHistoryPath = path.resolve('data', 'searchHistory.json'); // Adjust path as needed
 
 // Types for API responses
 type GeoData = {
@@ -46,6 +46,16 @@ const writeJsonFile = (filePath: string, data: any) => {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 };
 
+// Type Guard for GeoData
+const isGeoData = (data: any): data is GeoData[] => {
+    return Array.isArray(data) && data.every(item => item.lat && item.lon && item.name);
+};
+
+// Type Guard for WeatherData
+const isWeatherData = (data: any): data is WeatherData => {
+    return data && Array.isArray(data.list);
+};
+
 // POST route to fetch weather data and save the city
 router.post('/', async (req, res) => {
     const { city } = req.body;
@@ -59,7 +69,11 @@ router.post('/', async (req, res) => {
         const geoResponse = await fetch(
             `${process.env.API_BASE_URL}/geo/1.0/direct?q=${city}&limit=1&appid=${process.env.API_KEY}`
         );
-        const geoData = (await geoResponse.json()) as GeoData[];
+        const geoData = await geoResponse.json(); // Await the response from fetch
+
+        if (!isGeoData(geoData)) {
+            return res.status(400).json({ error: 'Invalid geo data' });
+        }
 
         if (geoData.length === 0) {
             return res.status(404).json({ error: 'City not found' });
@@ -71,7 +85,11 @@ router.post('/', async (req, res) => {
         const weatherResponse = await fetch(
             `${process.env.API_BASE_URL}/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.API_KEY}`
         );
-        const weatherData = (await weatherResponse.json()) as WeatherData;
+        const weatherData = await weatherResponse.json(); // Await the response from fetch
+
+        if (!isWeatherData(weatherData)) {
+            return res.status(400).json({ error: 'Invalid weather data' });
+        }
 
         // Save to history
         const history = readJsonFile(searchHistoryPath);
@@ -90,10 +108,10 @@ router.post('/', async (req, res) => {
     }
 });
 
-// GET route to return search history
-router.get('/history', (_, res) => { // Changed 'req' to '_'
+// GET route for /api/weather/history
+router.get('/history', (_, res) => {
     const history = readJsonFile(searchHistoryPath);
-    return res.json(history);
+    return res.json(history); // Return the cities in the search history
 });
 
 // DELETE route to remove a city from history
